@@ -1,0 +1,8 @@
+{
+  "datasets": [
+    {  "dataset": "PG1341NZ", "path": "{FTP_FOLDER}/{COUNTRY_AND_SITE}/Backup", "nameFormat": "{DATASET}-{DATE-STAMP}.bak"  },
+    {  "dataset": "PG1341NZ_Test", "path": "{FTP_FOLDER}/{COUNTRY_AND_SITE}/Backup", "nameFormat": "{DATASET}-{DATE-STAMP}.bak"  },
+    {  "dataset": "PG1341NZ_Test2", "path": "{FTP_FOLDER}/{COUNTRY_AND_SITE}/Backup", "nameFormat": "{DATASET}-{DATE-STAMP}.bak"  },
+    {  "dataset": "PG1271AU", "path": "{FTP_FOLDER}/{COUNTRY_AND_SITE}/Backup", "nameFormat": "{DATASET}-{DATE-STAMP}.bak"  }
+  ]
+}

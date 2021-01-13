@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+Resources:
+  DatasetS3ServicePipeline:
+    Type: 'AWS::CodePipeline::Pipeline'
+    Properties:
+      Name: DatasetS3Service
+      RoleArn: !GetAtt
+        - TimeSeriesBackupCodePipelineRole
+        - Arn
+      ArtifactStore:
+        Type: S3
+        Location: "myob-pgol-pipeline-artifacts"
+      Stages:
+        - Name: Source
+          Actions:
+            - InputArtifacts: [ ]
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Provider: GitHub
+                Version: "1"
+              RunOrder: 1
+              OutputArtifacts:
+                - Name: SourceArtifact
+              Configuration:
+                Owner: MYOB-Technology
+                Repo: pgol-lambda-sql
+                PollForSourceChanges: 'true'
+                Branch: master
+                OAuthToken: '{{resolve:secretsmanager:codepipeline_timeseries:SecretString:github_token}}'
+              Name: GetSourceFromGitHub
+
