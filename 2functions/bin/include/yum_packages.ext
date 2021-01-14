@@ -1,0 +1,35 @@
+
+function ensure_yum_package_present()
+{
+  YUM=$1
+
+  IS_INSTALLED=$(yum list installed -q "${YUM}" 2>/dev/null | grep -v 'Packages'  | wc -l | sed -e 's/\ //g')
+
+  if [ "${IS_INSTALLED}" = "0" ]
+  then
+    sudo yum install -y "${YUM}" 1> /dev/null
+    if [ $? -ne 0 ]
+    then
+      warn "yum package ${YUM} installation failed."
+      return -1
+    fi
+      notice "yum package ${YUM} installed successfully."
+  else
+    info "yum package ${YUM} available."
+  fi
+  return 0
+}
+
+function ensure_yum_package_list_present()
+{
+  declare -i STATUS=0
+
+  list=("$@")
+  for i in "${list[@]}"
+  do
+    ensure_yum_package_present "${i}"
+    STATUS=$(( $? + $STATUS ))
+  done
+
+  return $STATUS
+}

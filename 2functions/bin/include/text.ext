@@ -1,0 +1,26 @@
+TERMINAL_CLEAR=$(tput sgr0)
+
+TERMINAL_INFO=$(echo -e "setaf 7\ndim" | tput -S)
+TERMINAL_NOTICE=$(echo -e "setaf 15\nbold" | tput -S)
+TERMINAL_ERROR=$(echo -e "setaf 9\nbold" | tput -S)
+TERMINAL_WARN=$(echo -e "setaf 11\nbold" | tput -S)
+
+function info()
+{
+  echo "${TERMINAL_INFO}[INFO  ] ${1}${TERMINAL_CLEAR}"
+}
+
+function notice()
+{
+  echo "${TERMINAL_NOTICE}[NOTICE] ${1}${TERMINAL_CLEAR}"
+}
+
+function warn()
+{
+  echo "${TERMINAL_WARN}[WARN  ] ${1}${TERMINAL_CLEAR}"
+}
+
+function error()
+{
+  echo "${TERMINAL_ERROR}[ERROR ] ${1}${TERMINAL_CLEAR}"
+}

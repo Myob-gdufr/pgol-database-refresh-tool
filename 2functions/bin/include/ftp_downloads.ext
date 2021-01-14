@@ -1,0 +1,18 @@
+
+function ensure_download_present()
+{
+  PACKAGE=$1
+  SOURCE=$2
+
+  if [ -d "${ROOT_DIR}/third-party/${PACKAGE}" ]
+  then
+    info "Third party package ${PACKAGE} is available."
+  else
+    notice "Third party package ${PACKAGE} needs downloading."
+    mkdir -m 0755 -p "${ROOT_DIR}/third-party/${PACKAGE}"
+
+    DOWNLOAD_FILE="/tmp/$PACKAGE.tar.gz"
+    wget -O "${DOWNLOAD_FILE}" "${SOURCE}"
+    tar -zxf "${DOWNLOAD_FILE}" -C "${ROOT_DIR}/third-party/${PACKAGE}" --strip-components=1
+  fi
+}
