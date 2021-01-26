@@ -1,0 +1,448 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  AllNotificationsChannelId:
+    Type: String
+    Default: G01CWCP08TG # pg-team-chimera-pipeline-notifications
+  FailuresOnlyChannelId:
+    Type: String
+    Default: G01DCERB71T # pg-team-chimera-pipeline-failures
+  SlackWorkspaceId:
+    Type: String
+    Default: T02998537 # MYOB
+Resources:
+  ChatbotNotificationPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: AWS chatbot notification policy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'cloudwatch:Describe*'
+              - 'cloudwatch:Get*'
+              - 'cloudwatch:List*'
+            Resource: '*'
+  ChatbotServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          -
+            Effect: Allow
+            Principal:
+              Service: ['chatbot.amazonaws.com']
+            Action: ['sts:AssumeRole']
+      ManagedPolicyArns:
+        - Ref: ChatbotNotificationPolicy
+  AllNotificationsChannelConfig:
+    Type: AWS::Chatbot::SlackChannelConfiguration
+    Properties:
+      ConfigurationName: 'chimera-pipeline-notification-config-all'
+      IamRoleArn: 
+        !GetAtt ChatbotServiceRole.Arn
+      LoggingLevel: ERROR
+      SlackChannelId:
+        Ref: AllNotificationsChannelId
+      SlackWorkspaceId:
+        Ref: SlackWorkspaceId
+  FailuresOnlyChannelConfig:
+    Type: AWS::Chatbot::SlackChannelConfiguration
+    Properties:
+      ConfigurationName: 'chimera-pipeline-notification-config-failures'
+      IamRoleArn: 
+        !GetAtt ChatbotServiceRole.Arn
+      LoggingLevel: ERROR
+      SlackChannelId:
+        Ref: FailuresOnlyChannelId
+      SlackWorkspaceId:
+        Ref: SlackWorkspaceId
+  AllNotificationsSNSTopic:
+    Type: AWS::SNS::Topic
+    Properties: 
+      DisplayName: TimeSeriesBackup-Pipeline-notifications-all
+      Subscription:
+        - Endpoint: 'https://global.sns-api.chatbot.amazonaws.com'
+          Protocol: https
+  FailuresOnlySNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: TimeSeriesBackup-Pipeline-notifications-failures
+      Subscription:
+        - Endpoint: 'https://global.sns-api.chatbot.amazonaws.com'
+          Protocol: https
+  TimeSeriesBackupCodePipelineAllNotifications:
+    Type: AWS::CodeStarNotifications::NotificationRule
+    Properties:
+      DetailType: FULL
+      EventTypeIds:
+        - 'codepipeline-pipeline-pipeline-execution-started'
+        - 'codepipeline-pipeline-pipeline-execution-failed'
+        - 'codepipeline-pipeline-pipeline-execution-succeeded'
+        - 'codepipeline-pipeline-stage-execution-succeeded'
+        - 'codepipeline-pipeline-stage-execution-failed'
+        - 'codepipeline-pipeline-stage-execution-canceled'
+        - 'codepipeline-pipeline-manual-approval-needed'
+      Name: 'TimeSeriesBackup-Pipeline-notifications-all'
+      Resource: 'arn:aws:codepipeline:ap-southeast-2:101078140088:TimeSeriesBackup_Pipeline'
+      Targets:
+        - TargetAddress:
+            Ref: AllNotificationsChannelConfig
+          TargetType: AWSChatbotSlack  
+        - TargetAddress:
+            Ref: AllNotificationsSNSTopic
+          TargetType: SNS
+  TimeSeriesBackupPipelineFailureNotifications:
+    Type: AWS::CodeStarNotifications::NotificationRule
+    Properties:
+      DetailType: FULL
+      EventTypeIds:
+        - 'codepipeline-pipeline-pipeline-execution-failed'
+        - 'codepipeline-pipeline-stage-execution-failed'
+      Name: 'TimeSeriesBackup-Pipeline-notifications-failures'
+      Resource: 'arn:aws:codepipeline:ap-southeast-2:101078140088:TimeSeriesBackup_Pipeline'
+      Targets:
+        - TargetAddress:
+            Ref: FailuresOnlyChannelConfig
+          TargetType: AWSChatbotSlack  
+        - TargetAddress:
+            Ref: FailuresOnlySNSTopic
+          TargetType: SNS
+  TimeSeriesBackupCodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: TimeSeriesBackup-PipelineServiceRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+              - codepipeline.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        -
+          PolicyName: Read_Oauth_Token
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource: "arn:aws:secretsmanager:ap-southeast-2:101078140088:secret:codepipeline_timeseries-??????"
+        -
+          PolicyName: CodeBuild_Access
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              Effect: Allow
+              Action:
+                - codebuild:StartBuild
+                - codebuild:BatchGetBuilds
+              Resource:
+                - !GetAtt TestPythonLambdas.Arn
+                - !GetAtt BuildLambdas.Arn
+                - !GetAtt BuildAndTestDotNetLambdas.Arn
+                - !GetAtt DeployLambdasToTest.Arn
+                - !GetAtt DeployLambdasToProd.Arn
+        -
+          PolicyName: Write_S3_Artifacts
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              Effect: Allow
+              Action: s3:*
+              Resource:
+                - "arn:aws:s3:::myob-pgol-pipeline-artifacts"
+                - "arn:aws:s3:::myob-pgol-pipeline-artifacts/*"
+
+  TimeSeriesBackupCodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: TimeSeriesBackup-CodeBuildServiceRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: 
+              Service:
+              - codebuild.amazonaws.com
+            Action: 
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::101078140088:policy/myob-pgol-use-pipeline-deploy-key-policy'
+        - 'arn:aws:iam::101078140088:policy/myob-pgol-put-pipeline-deploy-policy'
+        - 'arn:aws:iam::101078140088:policy/myob-pgol-get-pipeline-deploy-policy'
+      Policies:
+        - 
+          PolicyName: CodeBuild_Write_Logs
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              Effect: Allow
+              Action: 
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: 
+                - "arn:aws:logs:ap-southeast-2:101078140088:log-group:*"
+        - 
+          PolicyName: ReadWrite_S3_Artifacts
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              Effect: Allow
+              Action: s3:*
+              Resource: 
+                - "arn:aws:s3:::myob-pgol-pipeline-artifacts"
+                - "arn:aws:s3:::myob-pgol-pipeline-artifacts/*"
+  TimeSeriesBackupDeploymentRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: TimeSeriesBackup-Deployment-Build
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: 
+              Service:
+              - codebuild.amazonaws.com
+            Action: 
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: AssumeDeploymentRole
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              Effect: Allow
+              Action:
+                - sts:AssumeRole
+              Resource: 
+                - 'arn:aws:iam::263800988620:role/TimeSeriesBackup-Deployment'
+                - 'arn:aws:iam::574138626371:role/TimeSeriesBackup-Deployment'
+                - 'arn:aws:iam::317382776567:role/TimeSeriesBackup-Deployment'
+        - 
+          PolicyName: CodeBuild_Write_Logs
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              Effect: Allow
+              Action: 
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: 
+                - "arn:aws:logs:ap-southeast-2:101078140088:log-group:/aws/codebuild/*"
+        - 
+          PolicyName: ReadS3ArtifactStore
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              Effect: Allow
+              Action:
+                - s3:GetObject
+              Resource:
+                - arn:aws:s3:::myob-pgol-pipeline-artifacts/*
+  TestPythonLambdas:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: pgol-lambda-sql-test-python-lambdas
+      Description: Runs tests on the python lambda code
+      ServiceRole: !GetAtt TimeSeriesBackupCodeBuildRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+        EnvironmentVariables:
+          - Name: "LogLevel"
+            Type: PLAINTEXT
+            Value: Info
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: etc/buildspec/python_test_buildspec.yml
+      TimeoutInMinutes: 10
+  BuildLambdas:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: pgol-lambda-sql-sam-build-lambdas
+      Description: Builds and packages all of the lambdas for deployment
+      ServiceRole: !GetAtt TimeSeriesBackupCodeBuildRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:4.0
+        EnvironmentVariables:
+          - Name: "LogLevel"
+            Type: PLAINTEXT
+            Value: Info
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: etc/buildspec/lambda_build_buildspec.yml
+  BuildAndTestDotNetLambdas:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: pgol-lambda-sql-test-dotnet-lambdas
+      Description: Builds and Tests the .NET Core lambdas
+      ServiceRole: !GetAtt TimeSeriesBackupCodeBuildRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:4.0
+        EnvironmentVariables:
+          - Name: "LogLevel"
+            Type: PLAINTEXT
+            Value: Info
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: etc/buildspec/dotnet_test_buildspec.yml
+  DeployLambdasToTest:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: pgol-lambda-sql-sam-deploy-lambdas-test
+      Description: Deploys the already-packaged lambdas from S3 to test
+      ServiceRole: !GetAtt TimeSeriesBackupDeploymentRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:4.0
+        EnvironmentVariables:
+          - Name: "LogLevel"
+            Type: PLAINTEXT
+            Value: Info
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: etc/buildspec/lambda_deploy_to_test_buildspec.yml
+  DeployLambdasToProd:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: pgol-lambda-sql-sam-deploy-lambdas-prod
+      Description: Deploys the already-packaged lambdas from S3 to production
+      ServiceRole: !GetAtt TimeSeriesBackupDeploymentRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:4.0
+        EnvironmentVariables:
+          - Name: "LogLevel"
+            Type: PLAINTEXT
+            Value: Info
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: etc/buildspec/lambda_deploy_to_prod_buildspec.yml
+  TimeSeriesBackupDeployPipeline:
+    Type: 'AWS::CodePipeline::Pipeline'
+    Properties:
+      Name: TimeSeriesBackup_Pipeline
+      RoleArn: !GetAtt
+        - TimeSeriesBackupCodePipelineRole
+        - Arn
+      ArtifactStore:
+        Type: S3
+        Location: "myob-pgol-pipeline-artifacts"
+      Stages:
+        -
+          Name: Source
+          Actions:
+            - InputArtifacts: []
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Provider: GitHub
+                Version: "1"
+              RunOrder: 1
+              OutputArtifacts:
+                - Name: SourceArtifact
+              Configuration:
+                Owner: MYOB-Technology
+                Repo: pgol-lambda-sql
+                PollForSourceChanges: 'true'
+                Branch: master
+                OAuthToken: '{{resolve:secretsmanager:codepipeline_timeseries:SecretString:github_token}}'
+              Name: GetSourceFromGitHub
+        - 
+          Name: "Build_And_Test"
+          Actions:
+            - Name: Test_Python_Lambdas
+              InputArtifacts:
+                - Name: SourceArtifact
+              ActionTypeId: 
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: '1'
+              RunOrder: 1
+              Configuration:
+                ProjectName: !Ref TestPythonLambdas
+            - Name: Build_And_Package_Lambdas
+              InputArtifacts:
+                - Name: SourceArtifact
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: '1'
+              RunOrder: 1
+              Configuration:
+                ProjectName: !Ref BuildLambdas
+              OutputArtifacts: 
+                - Name: BuiltSourceArtifact
+            - Name: Test_DotNet_Lambdas
+              InputArtifacts:
+                - Name: SourceArtifact
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: '1'
+              RunOrder: 1
+              Configuration:
+                ProjectName: !Ref BuildAndTestDotNetLambdas
+              OutputArtifacts: []
+        - Name: Deploy_to_Test
+          Actions:
+            - Name: Deploy_Lambdas_To_Test
+              InputArtifacts:
+                - Name: BuiltSourceArtifact
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: '1'
+              RunOrder: 1
+              Configuration:
+                ProjectName: !Ref DeployLambdasToTest
+              OutputArtifacts: []
+        - Name: Deploy_to_Prod
+          Actions:
+            - Name: ReleaseAuthorization
+              InputArtifacts: []
+              ActionTypeId:
+                Category: Approval
+                Version: '1'
+                Owner: AWS
+                Provider: Manual
+              OutputArtifacts: []
+              RunOrder: 1
+            - Name: Deploy_Lambdas_To_Prod
+              InputArtifacts:
+                - Name: BuiltSourceArtifact
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: '1'
+              RunOrder: 2
+              Configuration:
+                ProjectName: !Ref DeployLambdasToProd
+              OutputArtifacts: []
