@@ -1,0 +1,5 @@
+{
+    "StackName": "s3-file-move-pipeline-stack",
+    "CloudFormationTemplate": "etc/cf/S3_File_Move_Pipeline.yml",
+    "ProfileName": "dev"
+}
