@@ -1,0 +1,11 @@
+.DS_Store
+export
+build
+export.zip
+*.egg-info/
+*.py[cod]
+src/python/*/build/
+src/python/*/dist/
+src/python/*/__pycache__/
+
+.aws-sam
