@@ -1,0 +1,220 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  VpcId: 
+    Type: AWS::EC2::VPC::Id
+  VpcName:
+    Type: String
+Resources:
+
+  DatasetS3ServiceDeploymentRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: DatasetS3Service-Deployment
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: 
+              AWS:
+               - 'arn:aws:iam::101078140088:root'
+            Action: 
+              - 'sts:AssumeRole'
+      Policies:
+        - 
+          PolicyName: EC2SamDeploy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeVpcs
+                  - ec2:DescribeSecurityGroups
+                  - ec2:DescribeSubnets
+                Resource:
+                  - '*'
+        -
+          PolicyName: S3SamDeploy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                Resource:
+                  - 'arn:aws:s3:::myob-pgol-pipelinedeployment/*'
+        - 
+          PolicyName: LambdaDatasetS3SamDeploy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              Effect: Allow
+              Action: 
+                - lambda:CreateAlias
+                - lambda:CreateFunction
+                - lambda:DeleteFunction
+                - lambda:DeleteAlias
+                - lambda:GetFunction
+                - lambda:ListVersionsByFunction
+                - lambda:PublishVersion
+                - lambda:UpdateFunctionCode
+                - lambda:UpdateFunctionConfiguration
+                - lambda:ListTags
+                - lambda:TagResource
+                - lambda:UntagResource
+                - lambda:UpdateAlias
+                - lambda:GetFunctionConfiguration
+                - lambda:AddPermission
+                - lambda:RemovePermission
+              Resource: 
+                - !Sub "arn:aws:lambda:ap-southeast-2:${AWS::AccountId}:function:dataset-s3-*"
+        -
+          PolicyName: CloudformationSamDeploy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              Effect: Allow
+              Action:
+                - cloudformation:CreateChangeSet
+                - cloudformation:DescribeChangeSet
+                - cloudformation:DescribeStackEvents
+                - cloudformation:DescribeStacks
+                - cloudformation:ExecuteChangeSet
+                - cloudformation:GetTemplateSummary
+              Resource: 
+                - !Sub arn:aws:cloudformation:ap-southeast-2:${AWS::AccountId}:stack/Dataset-S3-Service-stack/*
+                - 'arn:aws:cloudformation:ap-southeast-2:aws:transform/Serverless*'
+        -
+          PolicyName: PassLambdaServiceRole
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              Effect: Allow
+              Action: 
+                - iam:PassRole
+              Resource: 
+                - !GetAtt DatasetS3PythonLambdaServiceRole.Arn
+        - 
+          PolicyName: SQSSamDeploy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              Effect: Allow
+              Action: 
+                - sqs:CreateQueue
+                - sqs:DeleteQueue
+                - sqs:AddPermission
+                - sqs:RemovePermission
+                - sqs:GetQueueAttributes
+                - sqs:SetQueueAttributes
+                - sqs:TagQueue
+                - sqs:UntagQueue
+              Resource: 
+                - !Sub arn:aws:sqs:ap-southeast-2:${AWS::AccountId}:*
+        - 
+          PolicyName: SNSSamDeploy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              Effect: Allow
+              Action: 
+                - sns:GetTopicAttributes
+                - sns:AddPermission
+                - sns:RemovePermission
+                - sns:CreateTopic
+                - sns:DeleteTopic
+                - sns:TagResource
+                - sns:UntagResource
+                - sns:SetTopicAttributes
+                - sns:Subscribe
+              Resource:
+                - !Sub arn:aws:sns:ap-southeast-2:${AWS::AccountId}:${VpcName}-*
+
+  DatasetS3PythonLambdaServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: DatasetS3-PythonLambdaServiceRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - 'lambda.amazonaws.com'
+            Action: 
+              - 'sts:AssumeRole'
+      Policies:
+        - 
+          PolicyName: LogToCloudWatch
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: '*'
+        - 
+          PolicyName: NetworkInterfaceAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              Effect: Allow
+              Action: 
+                - ec2:CreateNetworkInterface
+                - ec2:DescribeNetworkInterfaces
+                - ec2:DeleteNetworkInterface
+              Resource: '*'
+        - 
+          PolicyName: SNSListTopicsAndTags
+          PolicyDocument: 
+            Version: 2012-10-17
+            Statement:
+              Effect: Allow
+              Action: 
+                - sns:ListTopics
+                - sns:ListTagsForResource
+              Resource: !Sub arn:aws:sns:ap-southeast-2:${AWS::AccountId}:*
+        - 
+          PolicyName: SNSPublish
+          PolicyDocument: 
+            Version: 2012-10-17
+            Statement:
+              Effect: Allow
+              Action: 
+                - sns:Publish
+              Resource: !Sub arn:aws:sns:ap-southeast-2:${AWS::AccountId}:${VpcName}-*
+        - 
+          PolicyName: SQSAccess
+          PolicyDocument: 
+            Version: 2012-10-17
+            Statement:
+              Effect: Allow
+              Action: 
+                - sqs:ListQueues
+                - sqs:ListQueueTags
+                - sqs:SendMessage
+                - sqs:ReceiveMessage
+                - sqs:DeleteMessage
+              Resource: '*'
+
+  PythonLambdasSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: DatasetS3_python_lambda_security_group
+      GroupDescription: "Security group for Dataset S3 Service Python lambdas"
+      VpcId: !Ref VpcId
+      SecurityGroupEgress:
+        - Description: "HTTPS to Anywhere"
+          CidrIp: 0.0.0.0/0
+          FromPort: 443
+          ToPort: 443
+          IpProtocol: tcp
+      Tags:
+        - Key: Name
+          Value: DatasetS3_python_lambda_security_group
+        - Key: Role
+          Value: PythonLambdas
+        - Key: VPC
+          Value: !Ref VpcName

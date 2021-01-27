@@ -1,0 +1,10 @@
+[
+    {
+        "ParameterName": "VpcId",
+        "ParameterValue": "vpc-9e05b7fa"
+    },
+    {
+        "ParameterName": "VpcName",
+        "ParameterValue": "Test-PayGlobalOnline"
+    }
+]

@@ -1,12 +1,11 @@
 #!/usr/local/bin/pwsh
 try {
     $SamConfigName = "samconfig-test.toml"
-    $DeployRole = "arn:aws:iam::263800988620:role/TimeSeriesBackup-Deployment"
-    $DotNetRole = "arn:aws:iam::263800988620:role/TimeSeriesBackup-DotNetLambdaServiceRole"
-    $PythonRole = "arn:aws:iam::263800988620:role/TimeSeriesBackup-PythonLambdaServiceRole"
+    $DeployRole = "arn:aws:iam::263800988620:role/DatasetS3Service-Deployment"
+    $PythonRole = "arn:aws:iam::263800988620:role/DatasetS3-PythonLambdaServiceRole"
     $VpcName = "Test-PayGlobalOnline"
 
-    Invoke-Expression "${PSScriptRoot}/../Deploy_Lambdas.ps1 -SamConfigFileName ${SamConfigName} -DeploymentRoleArn ${DeployRole} -DotNetLambdaServiceRoleArn ${DotNetRole}  -PythonLambdaServiceRoleArn ${PythonRole} -VpcName ${VpcName}"
+    Invoke-Expression "${PSScriptRoot}/../Deploy_Lambdas.ps1 -SamConfigFileName ${SamConfigName} -DeploymentRoleArn ${DeployRole} -PythonLambdaServiceRoleArn ${PythonRole} -VpcName ${VpcName}"
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 catch {

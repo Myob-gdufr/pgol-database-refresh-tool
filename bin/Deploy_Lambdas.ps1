@@ -2,7 +2,6 @@
 param(
     [parameter(Mandatory=$true)][String]$SamConfigFileName=$null,
     [parameter(Mandatory=$true)][String]$DeploymentRoleArn=$null,
-    [parameter(Mandatory=$true)][String]$DotNetLambdaServiceRoleArn=$null,
     [parameter(Mandatory=$true)][String]$PythonLambdaServiceRoleArn=$null,
     [parameter(Mandatory=$true)][String]$VpcName=$null,
     [String]$LogLevel= $Env:LogLevel
@@ -35,17 +34,11 @@ try {
     New-LogEntry -level INFO -Event "BLD???" -Message "Calculating Security Context"
     $vpc_filter =  @{Name = "tag:VPC"; Values="$VpcName" }
     $python_role_filter = @{Name = "tag:Role"; Values = "PythonLambdas" }
-    $dotnet_role_filter = @{Name = "tag:Role"; Values = "DotNetLambdas" }
     $subnet_access_filter = @{Name = "tag:Role"; Values = "Nat"}
 
     $python_security_group_id = (Get-EC2SecurityGroup -Filter @($vpc_filter; $python_role_filter)  -Select "SecurityGroups.GroupId" -ProfileName "assumed_profile")
     if ($? -eq $false) {
         New-LogEntry -level WARN -Event "BLD9??" -Message "Failed to identify python security group for deplopyment."
-        exit 1
-    }
-    $dotnet_security_group_id = (Get-EC2SecurityGroup -Filter @($vpc_filter; $dotnet_role_filter)  -Select "SecurityGroups.GroupId" -ProfileName "assumed_profile")
-    if ($? -eq $false) {
-        New-LogEntry -level WARN -Event "BLD9??" -Message "Failed to identify .NET security group for deplopyment."
         exit 1
     }
 
@@ -63,9 +56,7 @@ try {
         --no-confirm-changeset `
         --parameter-overrides " `
             VpcName=$VpcName `
-            DotNetLambdaServiceRoleArnParam=$DotNetLambdaServiceRoleArn `
             PythonLambdaServiceRoleArnParam=$PythonLambdaServiceRoleArn `
-            DotNetLambdaSecurityGroupIdParam=$dotnet_security_group_id `
             PythonLambdaSecurityGroupIdParam=$python_security_group_id `
             VpcSubnetIdsParam=$subnet_ids"
     if ($LASTEXITCODE -ne 0) {

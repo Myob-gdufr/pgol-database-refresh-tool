@@ -30,13 +30,12 @@ Resources:
     Properties:
       FifoQueue: true
       QueueName: !Sub DatasetS3PlaceholderQueue-${VpcName}.fifo
-      DelaySeconds: 120 # 2 minute delivery delay
       Tags:
         - Key: VPC
           Value: !Ref VpcName
         - Key: Role
           Value: DatasetS3PlaceholderQueue
-  RunningRdsTasksQueuePolicy:
+  DatasetS3PlaceholderQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties:
       PolicyDocument:
@@ -92,3 +91,4 @@ Resources:
             Condition:
               ArnEquals:
                 AWS:SourceArn: !GetAtt DatasetS3PlaceholderLambda.Arn
+

@@ -1,0 +1,6 @@
+{
+    "StackName": "s3-file-move-dev-assets-stack",
+    "CloudFormationTemplate": "etc/cf/S3-file-move-DestinationAccountAssets.yml",
+    "ProfileName": "dev",
+    "ParameterFileName": "etc/cf/parameters_destinationaccount_dev.json"
+}
