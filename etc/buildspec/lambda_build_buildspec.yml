@@ -1,15 +1,10 @@
 version: 0.2
-env:
-  variables:
-    DOTNET_ROOT: /root/.dotnet
 phases:
   install:
     runtime-versions:
-      dotnet: 3.1
       python: 3.8
     commands:
       - echo Entered the install phase
-      - export PATH="$PATH:/root/.dotnet/tools"
       - pwsh $CODEBUILD_SRC_DIR/bin/lambda_build/prebuild.ps1
   build:
     commands:
