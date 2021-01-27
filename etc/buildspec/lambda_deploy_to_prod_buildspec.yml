@@ -1,0 +1,19 @@
+version: 0.2
+env:
+  variables:
+    DOTNET_ROOT: /root/.dotnet
+phases:
+  install:
+    runtime-versions:
+      dotnet: 3.1
+    commands:
+      - echo Entered the install phase
+      - export PATH="$PATH:/root/.dotnet/tools"
+  pre_build:
+    commands:
+      - echo Pre-Build started on `date`
+      - pwsh $CODEBUILD_SRC_DIR/bin/lambda_deploy_to_prod/prebuild.ps1
+  build:
+    commands:
+      - echo Build started on `date`
+      - pwsh $CODEBUILD_SRC_DIR/bin/lambda_deploy_to_prod/build.ps1

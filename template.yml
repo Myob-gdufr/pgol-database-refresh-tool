@@ -1,0 +1,244 @@
+Transform: AWS::Serverless-2016-10-31
+Parameters:
+  VpcName:
+    Type: String
+  DotNetLambdaServiceRoleArnParam:
+    Type: String
+  DotNetLambdaSecurityGroupIdParam:
+    Type: AWS::EC2::SecurityGroup::Id
+  PythonLambdaServiceRoleArnParam:
+    Type: String
+  PythonLambdaSecurityGroupIdParam:
+    Type: AWS::EC2::SecurityGroup::Id
+  VpcSubnetIdsParam:
+    Type: List<String>
+Description: This template is intended to set up the Lambdas contained in the pgol-lambda-sql repository.
+Resources:
+  BackupRdsDbToS3:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: BackupRdsDbToS3
+      CodeUri: ./src/dotnet-core-31/src/BackupRdsDbToS3/
+      Handler: BackupRdsDbToS3::BackupRdsDbToS3.BackupDatabase::BackupDatabaseHandler
+      Role: !Ref DotNetLambdaServiceRoleArnParam
+      AutoPublishAlias: MostRecent
+      Timeout: 60
+      Runtime: dotnetcore3.1
+      VpcConfig:
+        SecurityGroupIds:
+            - !Ref DotNetLambdaSecurityGroupIdParam
+        SubnetIds: !Ref VpcSubnetIdsParam
+  ListDbsOnRdsServer:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ListDbsOnRdsServer
+      CodeUri: ./src/dotnet-core-31/src/ListDbsOnRdsServer/
+      Handler: ListDbsOnRdsServer::ListDbsOnRdsServer.ListDatabases::ListDatabasesHandler
+      Role: !Ref DotNetLambdaServiceRoleArnParam
+      AutoPublishAlias: MostRecent
+      Timeout: 60
+      Runtime: dotnetcore3.1
+      VpcConfig:
+        SecurityGroupIds:
+            - !Ref DotNetLambdaSecurityGroupIdParam
+        SubnetIds: !Ref VpcSubnetIdsParam
+  PollTasksOnRdsServer:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: PollTasksOnRdsServer
+      CodeUri: ./src/dotnet-core-31/src/PollTasksOnRdsServer/
+      Handler: PollTasksOnRdsServer::PollTasksOnRdsServer.PollTasks::PollTasksHandler
+      Role: !Ref DotNetLambdaServiceRoleArnParam
+      AutoPublishAlias: MostRecent
+      Timeout: 60
+      Runtime: dotnetcore3.1
+      VpcConfig:
+        SecurityGroupIds:
+            - !Ref DotNetLambdaSecurityGroupIdParam
+        SubnetIds: !Ref VpcSubnetIdsParam
+  CreateLoginsOnRdsServer:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: CreateLoginsOnRdsServer
+      CodeUri: ./src/dotnet-core-31/src/CreateLoginsOnRdsServer/
+      Handler: CreateLoginsOnRdsServer::CreateLoginsOnRdsServer.CreateLogins::CreateLoginsHandler
+      Role: !Ref DotNetLambdaServiceRoleArnParam
+      AutoPublishAlias: MostRecent
+      Timeout: 60
+      Runtime: dotnetcore3.1
+      VpcConfig:
+        SecurityGroupIds:
+            - !Ref DotNetLambdaSecurityGroupIdParam
+        SubnetIds: !Ref VpcSubnetIdsParam
+  ApplyRdsDatabasePermissions:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ApplyRdsDatabasePermissions
+      CodeUri: ./src/dotnet-core-31/src/ApplyRdsDatabasePermissions/
+      Handler: ApplyRdsDatabasePermissions::ApplyRdsDatabasePermissions.ApplyRdsDatabasePermissions::ApplyPermissionsHandler
+      Role: !Ref DotNetLambdaServiceRoleArnParam
+      AutoPublishAlias: MostRecent
+      Timeout: 60
+      Runtime: dotnetcore3.1
+      VpcConfig:
+        SecurityGroupIds:
+            - !Ref DotNetLambdaSecurityGroupIdParam
+        SubnetIds: !Ref VpcSubnetIdsParam
+  RdsApplyDatabasePermissions:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: rds_apply_database_permissions
+      CodeUri: ./src/python/lambda_handlers/rds_apply_database_permissions
+      Handler: rds_apply_database_permissions.lambda_handler
+      Role: !Ref PythonLambdaServiceRoleArnParam
+      AutoPublishAlias: MostRecent
+      Timeout: 60
+      Runtime: python3.8
+      VpcConfig:
+        SecurityGroupIds:
+            - !Ref PythonLambdaSecurityGroupIdParam
+        SubnetIds: !Ref VpcSubnetIdsParam
+  RdsCreateDomainLoginsOnServer:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: rds_create_domain_logins_on_server
+      CodeUri: ./src/python/lambda_handlers/rds_create_domain_logins_on_server
+      Handler: rds_create_domain_logins_on_server.lambda_handler
+      Role: !Ref PythonLambdaServiceRoleArnParam
+      AutoPublishAlias: MostRecent
+      Timeout: 60
+      Runtime: python3.8
+      VpcConfig:
+        SecurityGroupIds:
+            - !Ref PythonLambdaSecurityGroupIdParam
+        SubnetIds: !Ref VpcSubnetIdsParam
+  RdsEnqueueNightlyBackupDatabases:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: rds_enqueue_nightly_backup_databases
+      CodeUri: ./src/python/lambda_handlers/rds_enqueue_nightly_backup_databases
+      Handler: rds_enqueue_nightly_backup_databases.lambda_handler
+      Role: !Ref PythonLambdaServiceRoleArnParam
+      AutoPublishAlias: MostRecent
+      Timeout: 60
+      Runtime: python3.8
+      VpcConfig:
+        SecurityGroupIds:
+            - !Ref PythonLambdaSecurityGroupIdParam
+        SubnetIds: !Ref VpcSubnetIdsParam
+  RdsNightlyBackupQueuedDatabases:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: rds_nightly_backup_queued_databases
+      CodeUri: ./src/python/lambda_handlers/rds_nightly_backup_queued_databases
+      Handler: rds_nightly_backup_queued_databases.lambda_handler
+      Role: !Ref PythonLambdaServiceRoleArnParam
+      AutoPublishAlias: MostRecent
+      Timeout: 60
+      Runtime: python3.8
+      VpcConfig:
+        SecurityGroupIds:
+            - !Ref PythonLambdaSecurityGroupIdParam
+        SubnetIds: !Ref VpcSubnetIdsParam
+  RdsMonitorDatabaseTasksFromQueue:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: rds_monitor_database_tasks_from_queue
+      CodeUri: ./src/python/lambda_handlers/rds_monitor_database_tasks_from_queue
+      Handler: rds_monitor_database_tasks_from_queue.lambda_handler
+      Role: !Ref PythonLambdaServiceRoleArnParam
+      AutoPublishAlias: MostRecent
+      Timeout: 900 # 15 minutes. Should bring this down or work out a better way to trigger it
+      Runtime: python3.8
+      VpcConfig:
+        SecurityGroupIds:
+            - !Ref PythonLambdaSecurityGroupIdParam
+        SubnetIds: !Ref VpcSubnetIdsParam
+  RunningRdsTasksQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      FifoQueue: true
+      QueueName: !Sub QueueRunningRDSTask-${VpcName}.fifo
+      DelaySeconds: 120 # 2 minute delivery delay
+      Tags:
+        - Key: VPC
+          Value: !Ref VpcName
+        - Key: Role
+          Value: QueueRunningRDSTask
+  RunningRdsTasksQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Resource: !GetAtt RunningRdsTasksQueue.Arn
+            Effect: Allow
+            Action: 
+              - "SQS:*"
+            Principal:
+              AWS: 
+                - !Sub "arn:aws:iam::${AWS::AccountId}:root"
+      Queues:
+        - !Ref RunningRdsTasksQueue
+
+  MonitorRdsTasksScheduledRule: 
+    Type: AWS::Events::Rule
+    Properties: 
+      Description: Triggers a lambda to monitor async RDS tasks on databases.
+      ScheduleExpression: "rate(15 minutes)"
+      State: "ENABLED"
+      Targets: 
+        - 
+          Arn: !GetAtt RdsMonitorDatabaseTasksFromQueue.Arn
+          Id: MostRecent
+          Input: 
+            !Sub |
+            {
+              "vpc_name": "${VpcName}"
+            }
+  PermissionForEventsToInvokeRdsMonitorDatabaseTasksFromQueueLambda:
+    Type: AWS::Lambda::Permission
+    Properties: 
+      FunctionName: !Ref RdsMonitorDatabaseTasksFromQueue
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt MonitorRdsTasksScheduledRule.Arn
+
+  DatabaseRestoredSuccessfullyTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: !Sub '${VpcName}-database-restored-successfully-topic'
+      TopicName: !Sub '${VpcName}-database-restored-successfully-topic'
+      Subscription:
+       - Protocol: lambda
+         Endpoint: !GetAtt RdsApplyDatabasePermissions.Arn
+      Tags:
+        - Key: VPC
+          Value: !Ref VpcName
+        - Key: Role
+          Value: RDSDatabaseRestoredSuccessfully
+
+  RdsApplyDatabasePermissionsInvokePermission:
+   Type: 'AWS::Lambda::Permission'
+   Properties:
+     Action: 'lambda:InvokeFunction'
+     FunctionName: !Ref RdsApplyDatabasePermissions
+     Principal: sns.amazonaws.com   
+
+  #Policy for any topics that are published to from the RDS task Monitoring lambda
+  RdsTaskTopicPolicy:
+    Type: 'AWS::SNS::TopicPolicy'
+    Properties:
+      Topics:
+        - !Ref DatabaseRestoredSuccessfullyTopic
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: 'sns:Publish'
+            Resource: !Ref DatabaseRestoredSuccessfullyTopic
+            Principal:
+              Service: 'lambda.amazonaws.com'
+            Condition:
+              ArnEquals:
+                AWS:SourceArn: !GetAtt RdsMonitorDatabaseTasksFromQueue.Arn
