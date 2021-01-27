@@ -14,8 +14,8 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: dataset-s3-placeholder
-      CodeUri: ./src\python\lambda_handlers\dataset-s3-placeholder
-      Handler: dataset-s3-placeholder.lambda_handler
+      CodeUri: ./src/python/lambda_handlers/dataset_s3_placeholder
+      Handler: dataset_s3_placeholder.lambda_handler
       Role: !Ref PythonLambdaServiceRoleArnParam
       AutoPublishAlias: MostRecent
       Timeout: 60
