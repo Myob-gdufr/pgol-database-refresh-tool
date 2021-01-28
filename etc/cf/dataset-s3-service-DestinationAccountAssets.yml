@@ -82,16 +82,16 @@ Resources:
               Resource: 
                 - !Sub arn:aws:cloudformation:ap-southeast-2:${AWS::AccountId}:stack/Dataset-S3-Service-stack/*
                 - 'arn:aws:cloudformation:ap-southeast-2:aws:transform/Serverless*'
-        -
-          PolicyName: PassLambdaServiceRole
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              Effect: Allow
-              Action: 
-                - iam:PassRole
-              Resource: 
-                - !GetAtt DatasetS3PythonLambdaServiceRole.Arn
+#        -
+#          PolicyName: PassLambdaServiceRole
+#          PolicyDocument:
+#            Version: 2012-10-17
+#            Statement:
+#              Effect: Allow
+#              Action: 
+#                - iam:PassRole
+#              Resource: 
+#                - !GetAtt DatasetS3PythonLambdaServiceRole.Arn
         - 
           PolicyName: SQSSamDeploy
           PolicyDocument:

@@ -8,4 +8,4 @@ s3_prefix = "sam-datasets3service-package"
 region = "ap-southeast-2"
 profile = "test"
 confirm_changeset = true
-capabilities = "CAPABILITY_IAM"
+capabilities = "CAPABILITY_IAM,CAPABILITY_NAMED_IAM"
