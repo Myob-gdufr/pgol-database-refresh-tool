@@ -2,7 +2,7 @@
 param(
     [parameter(Mandatory=$true)][String]$SamConfigFileName=$null,
     [parameter(Mandatory=$true)][String]$DeploymentRoleArn=$null,
-    [parameter(Mandatory=$true)][String]$PythonLambdaServiceRoleArn=$null,
+    [parameter(Mandatory=$true)][String]$VpcId=$null,
     [parameter(Mandatory=$true)][String]$VpcName=$null,
     [String]$LogLevel= $Env:LogLevel
 )
@@ -33,12 +33,10 @@ try {
 
     New-LogEntry -level INFO -Event "BLD???" -Message "Calculating Security Context"
     $vpc_filter =  @{Name = "tag:VPC"; Values="$VpcName" }
-    $python_role_filter = @{Name = "tag:Role"; Values = "PythonLambdas" }
     $subnet_access_filter = @{Name = "tag:Role"; Values = "Nat"}
 
-    $python_security_group_id = (Get-EC2SecurityGroup -Filter @($vpc_filter; $python_role_filter)  -Select "SecurityGroups.GroupId" -ProfileName "assumed_profile")
     if ($? -eq $false) {
-        New-LogEntry -level WARN -Event "BLD9??" -Message "Failed to identify python security group for deplopyment."
+        New-LogEntry -level WARN -Event "BLD9??" -Message "Failed to identify python security group for deployment."
         exit 1
     }
 
@@ -55,9 +53,8 @@ try {
         --profile assumed_profile `
         --no-confirm-changeset `
         --parameter-overrides " `
+            VpcId=$VpcId `
             VpcName=$VpcName `
-            PythonLambdaServiceRoleArnParam=$PythonLambdaServiceRoleArn `
-            PythonLambdaSecurityGroupIdParam=$python_security_group_id `
             VpcSubnetIdsParam=$subnet_ids"
     if ($LASTEXITCODE -ne 0) {
         New-LogEntry -level WARN -Event "BLD9??" -Message "The SAM deploy command returned a failure code."

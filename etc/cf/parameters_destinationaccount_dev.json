@@ -1,9 +1,5 @@
 [
     {
-        "ParameterName": "VpcId",
-        "ParameterValue": "vpc-027aa6f1bf0b09c4e"
-    },
-    {
         "ParameterName": "VpcName",
         "ParameterValue": "Dev-PayGlobalOnline"
     }
