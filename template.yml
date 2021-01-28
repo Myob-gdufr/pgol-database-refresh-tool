@@ -1,14 +1,12 @@
 Transform: AWS::Serverless-2016-10-31
 Parameters:
+  VpcId: 
+    Type: AWS::EC2::VPC::Id
   VpcName:
     Type: String
-  PythonLambdaServiceRoleArnParam:
-    Type: String
-  PythonLambdaSecurityGroupIdParam:
-    Type: AWS::EC2::SecurityGroup::Id
   VpcSubnetIdsParam:
     Type: List<String>
-Description: This template is intended to set up the Lambdas contained in the pgol-lambda-sql repository.
+Description: This template is intended to set up the Lambdas contained in the pgol-dataset-s3-service repository.
 Resources:
   DatasetS3PlaceholderLambda:
     Type: AWS::Serverless::Function
@@ -16,13 +14,13 @@ Resources:
       FunctionName: dataset-s3-placeholder
       CodeUri: ./src/python/lambda_handlers/dataset_s3_placeholder
       Handler: dataset_s3_placeholder.lambda_handler
-      Role: !Ref PythonLambdaServiceRoleArnParam
+      Role: !Ref DatasetS3PythonLambdaServiceRole
       AutoPublishAlias: MostRecent
       Timeout: 60
       Runtime: python3.8
       VpcConfig:
         SecurityGroupIds:
-            - !Ref PythonLambdaSecurityGroupIdParam
+            - !Ref PythonLambdasSecurityGroup
         SubnetIds: !Ref VpcSubnetIdsParam
   
   DatasetS3PlaceholderQueue:
@@ -74,8 +72,7 @@ Resources:
      FunctionName: !Ref DatasetS3PlaceholderLambda
      Principal: sns.amazonaws.com   
 
-  #Policy for any topics that are published to from the RDS task Monitoring lambda
-  RdsTaskTopicPolicy:
+  DatasetS3PlaceholderTopicPolicy:
     Type: 'AWS::SNS::TopicPolicy'
     Properties:
       Topics:
@@ -92,3 +89,91 @@ Resources:
               ArnEquals:
                 AWS:SourceArn: !GetAtt DatasetS3PlaceholderLambda.Arn
 
+  DatasetS3PythonLambdaServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: DatasetS3-PythonLambdaServiceRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - 'lambda.amazonaws.com'
+            Action: 
+              - 'sts:AssumeRole'
+      Policies:
+        - 
+          PolicyName: LogToCloudWatch
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: '*'
+        - 
+          PolicyName: NetworkInterfaceAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              Effect: Allow
+              Action: 
+                - ec2:CreateNetworkInterface
+                - ec2:DescribeNetworkInterfaces
+                - ec2:DeleteNetworkInterface
+              Resource: '*'
+        - 
+          PolicyName: SNSListTopicsAndTags
+          PolicyDocument: 
+            Version: 2012-10-17
+            Statement:
+              Effect: Allow
+              Action: 
+                - sns:ListTopics
+                - sns:ListTagsForResource
+              Resource: !Sub arn:aws:sns:ap-southeast-2:${AWS::AccountId}:*
+        - 
+          PolicyName: SNSPublish
+          PolicyDocument: 
+            Version: 2012-10-17
+            Statement:
+              Effect: Allow
+              Action: 
+                - sns:Publish
+              Resource: !Sub arn:aws:sns:ap-southeast-2:${AWS::AccountId}:${VpcName}-*
+        - 
+          PolicyName: SQSAccess
+          PolicyDocument: 
+            Version: 2012-10-17
+            Statement:
+              Effect: Allow
+              Action: 
+                - sqs:ListQueues
+                - sqs:ListQueueTags
+                - sqs:SendMessage
+                - sqs:ReceiveMessage
+                - sqs:DeleteMessage
+              Resource: '*'
+
+  PythonLambdasSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: DatasetS3_python_lambda_security_group
+      GroupDescription: "Security group for Dataset S3 Service Python lambdas"
+      VpcId: !Ref VpcId
+      SecurityGroupEgress:
+        - Description: "HTTPS to Anywhere"
+          CidrIp: 0.0.0.0/0
+          FromPort: 443
+          ToPort: 443
+          IpProtocol: tcp
+      Tags:
+        - Key: Name
+          Value: DatasetS3_python_lambda_security_group
+        - Key: Role
+          Value: PythonLambdas
+        - Key: VPC
+          Value: !Ref VpcName
