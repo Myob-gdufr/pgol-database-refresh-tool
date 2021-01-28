@@ -28,7 +28,20 @@ Resources:
                   - ec2:DescribeVpcs
                   - ec2:DescribeSecurityGroups
                   - ec2:DescribeSubnets
+                Resource:
+                  - '*'
+        - 
+          PolicyName: SecurityGroupSamDeploy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
                   - ec2:CreateSecurityGroup
+                  - ec2:DeleteSecurityGroup
+                  - ec2:CreateTags
+                  - ec2:RevokeSecurityGroupEgress
+                  - ec2:AuthorizeSecurityGroupEgress
                 Resource:
                   - '*'
         -
@@ -39,6 +52,11 @@ Resources:
               - Effect: Allow
                 Action:
                   - iam:GetRole
+                  - iam:CreateRole
+                  - iam:GetRolePolicy
+                  - iam:PutRolePolicy
+                  - iam:DeleteRolePolicy
+                  - iam:DeleteRole
                 Resource:
                   - '*'
         -
@@ -93,16 +111,16 @@ Resources:
               Resource: 
                 - !Sub arn:aws:cloudformation:ap-southeast-2:${AWS::AccountId}:stack/Dataset-S3-Service-stack/*
                 - 'arn:aws:cloudformation:ap-southeast-2:aws:transform/Serverless*'
-#        -
-#          PolicyName: PassLambdaServiceRole
-#          PolicyDocument:
-#            Version: 2012-10-17
-#            Statement:
-#              Effect: Allow
-#              Action: 
-#                - iam:PassRole
-#              Resource: 
-#                - !GetAtt DatasetS3PythonLambdaServiceRole.Arn
+        -
+          PolicyName: PassLambdaServiceRole
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              Effect: Allow
+              Action: 
+                - iam:PassRole
+              Resource: 
+                - !Sub 'arn:aws:iam::${AWS::AccountId}:role/DatasetS3*'
         - 
           PolicyName: SQSSamDeploy
           PolicyDocument:
