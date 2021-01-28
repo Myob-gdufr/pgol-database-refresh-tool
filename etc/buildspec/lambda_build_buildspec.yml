@@ -15,7 +15,6 @@ artifacts:
     - '.aws-sam/**/*'
     - 'bin/**/*'
     - 'etc/buildspec/*'
-    - 'etc/sam/*'
-    - sam-template.yml
+    - './*'
   
 

@@ -1,3 +1,3 @@
 #!/usr/local/bin/pwsh
-sam build --template-file "sam-template.yml"
+sam build
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
