@@ -52,6 +52,7 @@ try {
     New-LogEntry -level NOTICE -Event "BLD???" -Message "Starting the deploy process"
     sam deploy `
         --template-file "etc/sam/template.yml" `
+        --base-dir . `
         --config-file $SamConfigFileName `
         --profile assumed_profile `
         --no-confirm-changeset `
