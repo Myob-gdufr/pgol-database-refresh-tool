@@ -1,6 +1,6 @@
 #!/usr/local/bin/pwsh
 try {
-    $SamConfigName = "etc/sam/samconfig-prod.toml"
+    $SamConfigName = "samconfig-prod.toml"
     $DeployRole = "arn:aws:iam::574138626371:role/DatasetS3Service-Deployment"
     $PythonRole = "arn:aws:iam::574138626371:role/DatasetS3-PythonLambdaServiceRole"
     $VpcName = "PayGlobalOnline"
