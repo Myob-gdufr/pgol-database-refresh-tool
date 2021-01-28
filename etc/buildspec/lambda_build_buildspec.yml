@@ -16,5 +16,6 @@ artifacts:
     - 'bin/**/*'
     - 'etc/buildspec/*'
     - 'etc/sam/*'
+    - sam-template.yml
   
 
