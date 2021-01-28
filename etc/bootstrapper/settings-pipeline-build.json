@@ -1,5 +1,5 @@
 {
-    "StackName": "s3-file-move-pipeline-stack",
-    "CloudFormationTemplate": "etc/cf/S3-file-move-pipeline.yml",
+    "StackName": "dataset-s3-service-pipeline-stack",
+    "CloudFormationTemplate": "etc/cf/dataset-s3-service-pipeline.yml",
     "ProfileName": "build"
 }

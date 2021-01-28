@@ -8,3 +8,6 @@ Code conventions follow similar structure to the [pgol-lambda-sql](https://githu
 
 deploy pipeline:
 `../pgol-cf-bootstrap/src/cf-bootstrap.ps1 etc/bootstrapper/settings-pipeline-build.json`
+
+deploy destination account assets to test:
+`../pgol-cf-bootstrap/src/cf-bootstrap.ps1 .\etc\bootstrapper\settings_account_assets_test.json`

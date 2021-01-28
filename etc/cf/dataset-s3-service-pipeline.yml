@@ -1,9 +1,9 @@
 AWSTemplateFormatVersion: 2010-09-09
 Resources:
-  DatasetS3MoveCodePipelineRole:
+  DatasetS3ServiceCodePipelineRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: DatasetS3Move-PipelineServiceRole
+      RoleName: DatasetS3Service-PipelineServiceRole
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -46,10 +46,10 @@ Resources:
                 - "arn:aws:s3:::myob-pgol-pipeline-artifacts"
                 - "arn:aws:s3:::myob-pgol-pipeline-artifacts/*"
 
-  DatasetS3MoveCodeBuildRole:
+  DatasetS3ServiceCodeBuildRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: DatasetS3Move-CodeBuildServiceRole
+      RoleName: DatasetS3Service-CodeBuildServiceRole
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -86,10 +86,10 @@ Resources:
               Resource: 
                 - "arn:aws:s3:::myob-pgol-pipeline-artifacts"
                 - "arn:aws:s3:::myob-pgol-pipeline-artifacts/*"
-  DatasetS3MoveDeploymentRole:
+  DatasetS3ServiceDeploymentRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: DatasetS3Move-Deployment-Build
+      RoleName: DatasetS3Service-Deployment-Build
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -108,9 +108,9 @@ Resources:
               Action:
                 - sts:AssumeRole
               Resource: 
-                - 'arn:aws:iam::263800988620:role/DatasetS3Move-Deployment'
-                - 'arn:aws:iam::574138626371:role/DatasetS3Move-Deployment'
-                - 'arn:aws:iam::317382776567:role/DatasetS3Move-Deployment'
+                - 'arn:aws:iam::263800988620:role/DatasetS3Service-Deployment'
+                - 'arn:aws:iam::574138626371:role/DatasetS3Service-Deployment'
+                - 'arn:aws:iam::317382776567:role/DatasetS3Service-Deployment'
         - 
           PolicyName: CodeBuild_Write_Logs
           PolicyDocument:
@@ -138,7 +138,7 @@ Resources:
     Properties:
       Name: pgol-dataset-s3-service-sam-build-lambdas
       Description: Builds and packages all of the lambdas for deployment
-      ServiceRole: !GetAtt DatasetS3MoveCodeBuildRole.Arn
+      ServiceRole: !GetAtt DatasetS3ServiceCodeBuildRole.Arn
       Artifacts:
         Type: CODEPIPELINE
       Environment:
@@ -157,7 +157,7 @@ Resources:
     Properties:
       Name: pgol-dataset-s3-service-sam-deploy-lambdas-test
       Description: Deploys the already-packaged lambdas from S3 to test
-      ServiceRole: !GetAtt DatasetS3MoveDeploymentRole.Arn
+      ServiceRole: !GetAtt DatasetS3ServiceDeploymentRole.Arn
       Artifacts:
         Type: CODEPIPELINE
       Environment:
@@ -176,7 +176,7 @@ Resources:
     Properties:
       Name: pgol-dataset-s3-service-sam-deploy-lambdas-prod
       Description: Deploys the already-packaged lambdas from S3 to production
-      ServiceRole: !GetAtt DatasetS3MoveDeploymentRole.Arn
+      ServiceRole: !GetAtt DatasetS3ServiceDeploymentRole.Arn
       Artifacts:
         Type: CODEPIPELINE
       Environment:
@@ -190,12 +190,12 @@ Resources:
       Source:
         Type: CODEPIPELINE
         BuildSpec: etc/buildspec/lambda_deploy_to_prod_buildspec.yml
-  DatasetS3MoveDeployPipeline:
+  DatasetS3ServiceDeployPipeline:
     Type: 'AWS::CodePipeline::Pipeline'
     Properties:
-      Name: DatasetS3Move_Pipeline
+      Name: DatasetS3Service_Pipeline
       RoleArn: !GetAtt
-        - DatasetS3MoveCodePipelineRole
+        - DatasetS3ServiceCodePipelineRole
         - Arn
       ArtifactStore:
         Type: S3
