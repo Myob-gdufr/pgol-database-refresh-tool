@@ -14,7 +14,7 @@ Resources:
       FunctionName: dataset-s3-placeholder
       CodeUri: ./src/python/lambda_handlers/dataset_s3_placeholder
       Handler: dataset_s3_placeholder.lambda_handler
-      Role: !Ref DatasetS3PythonLambdaServiceRole
+      Role: !GetAtt DatasetS3PythonLambdaServiceRole.Arn
       AutoPublishAlias: MostRecent
       Timeout: 60
       Runtime: python3.8

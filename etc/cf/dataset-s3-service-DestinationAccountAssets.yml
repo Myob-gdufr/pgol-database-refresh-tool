@@ -28,6 +28,17 @@ Resources:
                   - ec2:DescribeVpcs
                   - ec2:DescribeSecurityGroups
                   - ec2:DescribeSubnets
+                  - ec2:CreateSecurityGroup
+                Resource:
+                  - '*'
+        -
+          PolicyName: IAMSamDeploy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - iam:GetRole
                 Resource:
                   - '*'
         -
