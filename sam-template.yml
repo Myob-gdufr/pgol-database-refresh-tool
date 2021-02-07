@@ -1,0 +1,93 @@
+Transform: AWS::Serverless-2016-10-31
+Parameters:
+  VpcName:
+    Type: String
+  PythonLambdaServiceRoleArnParam:
+    Type: String
+  PythonLambdaSecurityGroupIdParam:
+    Type: AWS::EC2::SecurityGroup::Id
+  VpcSubnetIdsParam:
+    Type: List<String>
+Description: This template is intended to set up the Lambdas contained in the pgol-lambda-sql repository.
+Resources:
+  DatasetS3PlaceholderLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: dataset-s3-placeholder
+      CodeUri: ./src/python/lambda_handlers/dataset_s3_placeholder
+      Handler: dataset_s3_placeholder.lambda_handler
+      Role: !Ref PythonLambdaServiceRoleArnParam
+      AutoPublishAlias: MostRecent
+      Timeout: 60
+      Runtime: python3.8
+      VpcConfig:
+        SecurityGroupIds:
+            - !Ref PythonLambdaSecurityGroupIdParam
+        SubnetIds: !Ref VpcSubnetIdsParam
+  
+  DatasetS3PlaceholderQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      FifoQueue: true
+      QueueName: !Sub DatasetS3PlaceholderQueue-${VpcName}.fifo
+      Tags:
+        - Key: VPC
+          Value: !Ref VpcName
+        - Key: Role
+          Value: DatasetS3PlaceholderQueue
+
+  DatasetS3PlaceholderQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Resource: !GetAtt DatasetS3PlaceholderQueue.Arn
+            Effect: Allow
+            Action: 
+              - "SQS:*"
+            Principal:
+              AWS: 
+                - !Sub "arn:aws:iam::${AWS::AccountId}:root"
+      Queues:
+        - !Ref DatasetS3PlaceholderQueue
+
+  DatasetS3PlaceholderTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: !Sub '${VpcName}-dataset-s3-placeholder-topic'
+      TopicName: !Sub '${VpcName}-dataset-s3-placeholder-topic'
+      Subscription:
+       - Protocol: lambda
+         Endpoint: !GetAtt DatasetS3PlaceholderLambda.Arn
+      Tags:
+        - Key: VPC
+          Value: !Ref VpcName
+        - Key: Role
+          Value: RDSDatabaseRestoredSuccessfully
+
+  DatasetS3PlaceholderLambdaInvokePermission:
+   Type: 'AWS::Lambda::Permission'
+   Properties:
+     Action: 'lambda:InvokeFunction'
+     FunctionName: !Ref DatasetS3PlaceholderLambda
+     Principal: sns.amazonaws.com   
+
+  #Policy for any topics that are published to from the RDS task Monitoring lambda
+  RdsTaskTopicPolicy:
+    Type: 'AWS::SNS::TopicPolicy'
+    Properties:
+      Topics:
+        - !Ref DatasetS3PlaceholderTopic
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: 'sns:Publish'
+            Resource: !Ref DatasetS3PlaceholderTopic
+            Principal:
+              Service: 'lambda.amazonaws.com'
+            Condition:
+              ArnEquals:
+                AWS:SourceArn: !GetAtt DatasetS3PlaceholderLambda.Arn
+
