@@ -7,8 +7,8 @@ def lambda_handler(event, context):
     db_list = {}
     if 'body' in event:
         if 'db_endpoints' in event['body']:
+            db_endpoints = event['body']['db_endpoints']
             if 'debug' in event:
-                db_endpoints = event['body']['db_endpoints']
                 print(f'received db_list {db_endpoints}')
     else:
         example_event = {
