@@ -5,34 +5,50 @@ from get_secret import get_secret
 def lambda_handler(event, context):
 
     db_list = {}
-    if 'db_names' in event:
-        if 'debug' in event:
-            received_names = event['db_names']
-            print(f'received db_list {received_names}')
+    if 'body' in event:
+        if 'db_endpoints' in event['body']:
+            if 'debug' in event:
+                db_endpoints = event['body']['db_endpoints']
+                print(f'received db_list {db_endpoints}')
     else:
-        example_request = "{\"db_names\": [\"camel\", \"bear\", \"aardvark\"], \"db_endpoints\": {\"camel\": {\"Address\": \"rp15sh7qh7q3u4v.cq5ljoh1cbwr.ap-southeast-2.rds.amazonaws.com\", \"Port\": 1433, \"HostedZoneId\": \"Z32T0VRHXEXS0V\"}, \"bear\": {\"Address\": \"rpoa8aqv9pka4o.cq5ljoh1cbwr.ap-southeast-2.rds.amazonaws.com\", \"Port\": 1433, \"HostedZoneId\": \"Z32T0VRHXEXS0V\"}, \"aardvark\": {\"Address\": \"rpr8vzhnsqc2wz.cq5ljoh1cbwr.ap-southeast-2.rds.amazonaws.com\", \"Port\": 1433, \"HostedZoneId\": \"Z32T0VRHXEXS0V\"}}}"
+        example_event = {
+            "statusCode": 200,
+            "debug": 1,
+            "body": {
+                "db_endpoints": {
+                    "RDS-002t": {
+                        "Address": "rpuqa8yeaij86q.crqxd7hsfi2c.ap-southeast-2.rds.amazonaws.com",
+                        "Port": 1433,
+                        "HostedZoneId": "Z32T0VRHXEXS0V"
+                    }
+                }
+            }
+        }
         return {
             "statusCode": 400,
-            "message": "required parameter missing: db_list",
-            "expected structure": f"array of db names and endpoints e.g. {example_request}"
+            "message": "required parameter missing: db_endpoints",
+            "expected structure": f"array of db names and endpoints e.g. {example_event}"
         }
 
     # loop over the instance names, get the login secrets, make a connection to the db, and pull the database names from the instance
-    for db_name in event['db_names']:
+    for db_name in event['body']['db_endpoints']:
         if 'debug' in event:
             print(f'looping over db_name {db_name}')
         db_list[db_name] = {}
         region = "ap-southeast-2"
 
-        # This might be doing too much in a single function. Maybe better to break get_secret into its own function? 
-        # except that passing secrets around wouldn't be secure so I'll do it here (in the place where they're used)
+        # a hack to set the secret prefix since they're different in different accounts, will only work in test and prod
+        secret_key = "RDS-Admin-Secret-PayGlobalOnline-" + db_name
+        if db_name == 'RDS-002t':
+            secret_key = 'RDS-Admin-Secret-Test-PayGlobalOnline-' + db_name
+
         if 'debug' in event:
-            print(f'pulling secrets for RDS-Admin-Secret-PayGlobalOnline-{db_name}')
-        secret_response = get_secret("RDS-Admin-Secret-PayGlobalOnline-"+db_name , region)
+            print(f'pulling secrets for {secret_key}')
+        secret_response = get_secret( secret_key , region)
         secret_string = json.loads(secret_response['SecretString'])
 
         # set up the connection string
-        server = event['db_endpoints'][db_name]['Address']
+        server = event['body']['db_endpoints'][db_name]['Address']
         username = secret_string['username']
         password = secret_string['password']
         if 'debug' in event:

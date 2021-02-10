@@ -27,10 +27,11 @@ def lambda_handler(event, context):
     # the list of endpoints was requested, put those in the return objects
     if 'list_endpoints' in event:
         return_everything = False
+        return_object['db_endpoints'] = {}
         for DBInstance in db_instances['DBInstances']:
             for Tag in DBInstance['TagList']:
                 if Tag['Key'] == 'Name':
-                    return_object[Tag['Value']]=  DBInstance['Endpoint']
+                    return_object['db_endpoints'][Tag['Value']] =  DBInstance['Endpoint']
 
     if return_everything:
         return {
@@ -40,5 +41,5 @@ def lambda_handler(event, context):
     else:
         return{
             'statusCode': 200,
-            'body': json.dumps(return_object, default=str)
+            'body': return_object
         }
