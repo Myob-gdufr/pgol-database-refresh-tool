@@ -6,7 +6,13 @@ from describe_db_instances import describe_db_instances
 # if event[endpoint_list], return the endpoints as a dict with the db_name as the key
 def lambda_handler(event, context):
 
-    db_instances = describe_db_instances("ap-southeast-2")
+    try:
+        db_instances = describe_db_instances("ap-southeast-2")
+    except:
+        return {
+            "statusCode": 500,
+            "message": "unable to execute describe_db_instances api call"
+        }
     return_object = {}
     return_everything = True
 

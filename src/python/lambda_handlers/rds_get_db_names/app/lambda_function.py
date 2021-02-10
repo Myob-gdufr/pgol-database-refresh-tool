@@ -48,7 +48,13 @@ def lambda_handler(event, context):
 
         if 'debug' in event:
             print(f'pulling secrets for {secret_key}')
-        secret_response = get_secret( secret_key , region)
+        try:
+            secret_response = get_secret( secret_key, region)
+        except:
+            return{
+                "statusCode": 500,
+                "message": "unable to get login info from secretsmanager"
+            }
         secret_string = json.loads(secret_response['SecretString'])
 
         # set up the connection string
@@ -59,9 +65,23 @@ def lambda_handler(event, context):
             print(f'building connection string with server {server} and username {username}')
         conn_str = 'DRIVER={ODBC Driver 17 for SQL Server};SERVER=' + str(server) + ';UID=' + str(username) + ';PWD=' + str(password)
 
-        db_connection = pyodbc.connect(conn_str)
+        try:
+            db_connection = pyodbc.connect(conn_str)
+        except:
+            return {
+                "statusCode": 500,
+                "message": "unable to get connect to db"
+            }
         cursor = db_connection.cursor()
-        cursor.execute('select [name] as database_name from sys.databases order by name')
+
+        try:
+            cursor.execute('select [name] as database_name from sys.databases order by name')
+        except:
+            return {
+                "statusCode": 500,
+                "message": "unable to execute sql query"
+            }
+            
         db_list[db_name]['databases'] = []
         for row in cursor.fetchall():
             if 'debug' in event:
