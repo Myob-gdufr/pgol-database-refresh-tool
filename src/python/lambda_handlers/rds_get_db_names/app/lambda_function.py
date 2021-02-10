@@ -34,7 +34,11 @@ def lambda_handler(event, context):
     for db_name in event['body']['db_endpoints']:
         if 'debug' in event:
             print(f'looping over db_name {db_name}')
+
+        #initialize the return object
         db_list[db_name] = {}
+        # put the endpoint in the return object
+        db_list[db_name]['endpoint'] = event['body']['db_endpoints'][db_name]
         region = "ap-southeast-2"
 
         # a hack to set the secret prefix since they're different in different accounts, will only work in test and prod
