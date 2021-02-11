@@ -2,17 +2,22 @@
 # pgol-database-refresh-tool
 The code and deployment for the describe_db_instances lambda
 
-# Usage:
+# Deployment:
 
+############################################################
+# build the app using docker
+############################################################
 # build the docker image from lambda_handler root directory (e.g. src/python/lambda_handlers/rds_get_databases)
 cd pgol-database-refresh-tool/src/python/lambda_handlers/describe_db_instances
 # the docker build looks to the Dockerfile in the current directory for build instructions 
-# the local tag doesn't really matter except for consistency
+# the tag ":describe_db_instances" helps with consistency and clarity 
 docker build -t pgol/database_refresh_tool:describe_db_instances .
 
 # IF you want to test it locally: run the image and load up a bash shell inside it
 docker run -it pgol/database_refresh_tool:describe_db_instances /bin/bash
 
+############################################################
+# Push the image to ECR
 ############################################################
 # PROD only, see other accounts below
 # log in to ECR
@@ -39,5 +44,5 @@ docker tag pgol/database_refresh_tool:describe_db_instances 263800988620.dkr.ecr
 # push the image to ECR
 docker push 263800988620.dkr.ecr.ap-southeast-2.amazonaws.com/pgol/database_refresh_tool:describe_db_instances
 
-# now the image can be used to deploy a lambda using the image URI@digest
+# now the image can be used to deploy a lambda using the image URI@digest, the interface in the aws management console is super simple
 # 263800988620.dkr.ecr.ap-southeast-2.amazonaws.com/pgol/database_refresh_tool@sha256:126f810048fa221abed19668b03e4a52b2683b551bd77bd1778a51a8117b869b

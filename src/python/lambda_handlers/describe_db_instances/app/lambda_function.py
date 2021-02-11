@@ -7,7 +7,11 @@ from describe_db_instances import describe_db_instances
 def lambda_handler(event, context):
 
     try:
-        db_instances = describe_db_instances("ap-southeast-2")
+        if 'profile' in event.keys():
+            db_instances = describe_db_instances({"profile": event.profile})
+            event = event.body
+        else:
+            db_instances = describe_db_instances()
     except:
         return {
             "statusCode": 500,
@@ -49,3 +53,22 @@ def lambda_handler(event, context):
             'statusCode': 200,
             'body': return_object
         }
+
+#Allows this to the called/tested from the command line, defaults to the 'test' aws profile
+def script():
+    import argparse
+
+    parser = argparse.ArgumentParser(description='describe the db instances in an account in a region')
+    parser.add_argument('--profile', dest='profile', help='The aws profile to use for the request', default='test')
+    parser.add_argument('--body', dest='body', help='The request body to test', default={})
+
+    args = parser.parse_args()
+    print(args.body)
+
+    result = lambda_handler(args, {})
+
+    print(result)
+    return result
+
+if __name__ == '__main__':
+    script()
